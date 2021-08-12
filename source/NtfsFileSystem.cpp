@@ -13,7 +13,10 @@ CNtfsFileSystem::CNtfsFileSystem(IBaseReader *prmReader)
 
 CNtfsFileSystem::~CNtfsFileSystem()
 {
-	this->FreeRunList(m_mftRunList);
+	if (this->m_mftRunList != 0) {
+		this->FreeRunList(this->m_mftRunList);
+		this->m_mftRunList = 0;
+	}
 }
 
 void CNtfsFileSystem::Init()
@@ -40,8 +43,8 @@ UINT64 CNtfsFileSystem::ReadFileContent(CBaseFileObject *prmFileObject, UCHAR pr
 void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 {
 	UINT32 clusterSize = this->m_sectorsPerCluster * this->m_bytesPerSector;
-	TCHAR szFileName[MAX_PATH * 4] = { 0 };
-	TCHAR szAnsiName[MAX_PATH * 4] = { 0 };
+	UCHAR szFileName[MAX_PATH * 4] = { 0 };
+	CHAR szAnsiName[MAX_PATH * 4] = { 0 };
 	UCHAR szAttrValue[1024] = { 0 };
 	UINT32 nameLenOffset = 0;
 	UINT32 nameLen = 0;
@@ -61,21 +64,21 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 			UINT64 clusterOffset = p->lcn * this->m_sectorsPerCluster + i * this->m_sectorsPerCluster;
 			this->ReadBuf(szBuf, clusterOffset, clusterSize);
 			usnOffset = *(UINT16*)&szBuf[4];
-			for (size_t j = 0; j < this->m_sectorsPerCluster; j++)
+			for (size_t k = 0; k < this->m_sectorsPerCluster; k++)
 			{
-				memcpy(szBuf + 0x1FE + j * this->m_bytesPerSector, szBuf + usnOffset + 2 + j * 2, 2);//恢复每个扇区最后两个字节数据
+				memcpy(szBuf + 0x1FE + k * this->m_bytesPerSector, szBuf + usnOffset + 2 + k * 2, 2);//恢复每个扇区最后两个字节数据
 			}
-			for (size_t j = 0; j < clusterSize ; j += 1024)
+			for (size_t k = 0; k < clusterSize ; k += 1024)
 			{
-				if (szBuf[j + 0x16] == 0)
+				if (*(szBuf + k + 0x16) == 0) //0: record not used
 				{
 #ifdef _DEBUG
 					UINT64 seqNo = p->vcn * this->m_sectorsPerCluster / 2;
-					seqNo += i * this->m_sectorsPerCluster / 2 + j / 1024;
+					seqNo += i * this->m_sectorsPerCluster / 2 + k / 1024;
 #endif
 					//fileInfo.seqNo = p->vcn*m_ntfsType->sectorsPerCluster / 2;
 					//fileInfo.seqNo += i*m_ntfsType->sectorsPerCluster / 2 + j / 1024;
-					if (!this->GetAttrValue(NTFS_ATTRDEF::ATTR_FILE_NAME, szBuf + j, (UCHAR*)szAttrValue))
+					if (!this->GetAttrValue(NTFS_ATTRDEF::ATTR_FILE_NAME, szBuf + k, (UCHAR*)szAttrValue))
 					{
 						continue;
 					}
@@ -93,7 +96,7 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 					//用于设置文件内容占用了哪些扇区信息
 					File_Content_Extent	*fileExtents = 0;
 
-					this->GetFileExtent(szBuf + j, clusterOffset + j / 512, &fileExtents);
+					this->GetFileExtent(szBuf + i, clusterOffset + i / 512, &fileExtents);
 
 					CBaseFileObject	*fileObject = new CBaseFileObject();
 #ifdef _UNICODE
@@ -101,12 +104,26 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 #else
 					fileObject->SetFileName(szAnsiName);
 #endif
-					fileObject->SetFileSize(this->GetFileSize(szBuf+j));
+					fileObject->SetFileSize(this->GetFileSize(szBuf+i));
 					//设置文件内容占用扇区信息
 					fileObject->SetFileExtent(fileExtents);
-					fileObject->SetAccessTime(this->GetAccessTime(szBuf+j));
-					fileObject->SetCreateTime(this->GetCreateTime(szBuf+j));
-					fileObject->SetModifyTime(this->GetModifyTime(szBuf+j));
+					fileObject->SetAccessTime(this->GetAccessTime(szBuf+i));
+					fileObject->SetCreateTime(this->GetCreateTime(szBuf+i));
+					fileObject->SetModifyTime(this->GetModifyTime(szBuf+i));
+
+					//if (this->GetAttrValue(NTFS_ATTRDEF::ATTR_INDEX_ROOT, szBuf + k, 
+					//	(UCHAR*)szAttrValue))
+					//{
+					//	std::vector<CBaseFileObject*> fs;
+					//	this->GetFileFromIndexRoot(szAttrValue, &fs);
+					//}
+					//if (this->GetAttrValue(NTFS_ATTRDEF::ATTR_INDEX_ALLOCATION, szBuf + k,
+					//	(UCHAR*)szAttrValue))
+					//{
+					//	std::vector<CBaseFileObject*> fs;
+					//	this->GetFileFromAllocIndex(szAttrValue, &fs);
+					//}
+
 					fileArray.push_back(fileObject);
 				}
 			}
@@ -572,7 +589,7 @@ Quit:
 	this->FreeRunList(runList);
 }
 
-UINT64	CNtfsFileSystem::ReadFileContent(UCHAR prmDstBuf[],UINT64 prmByteOff,UINT64 prmByteToRead, UINT64 prmFileSize,File_Content_Extent *prmFileExtent)
+UINT64 CNtfsFileSystem::ReadFileContent(UCHAR prmDstBuf[],UINT64 prmByteOff,UINT64 prmByteToRead, UINT64 prmFileSize,File_Content_Extent *prmFileExtent)
 {
 	UINT64 tmpResult = 0;
 	UINT64 tmpByteRead = 0;
@@ -684,7 +701,7 @@ void CNtfsFileSystem::FreeFileExtent(File_Content_Extent *prmFileExtent)
 	}
 }
 
-UINT64	CNtfsFileSystem::GetOffsetByFileName(UINT64 prmParentFileOffset,const CStringUtil &prmFileName)
+UINT64 CNtfsFileSystem::GetOffsetByFileName(UINT64 prmParentFileOffset,const CStringUtil &prmFileName)
 {
 	UCHAR tmpBuf[1024] = {0};
 	UCHAR tmpAttrValue[1024] = {0};
@@ -822,7 +839,7 @@ UINT64 CNtfsFileSystem::GetOffsetFromAllocByFileName(UCHAR *prmAttrValue,const C
 	return tmpFileOffset;
 }
 
-UINT64	CNtfsFileSystem::GetOffsetByFileNameInIndex(UCHAR *prmBuf,UINT16 prmOffset,UINT32 prmBufLen,const CStringUtil &prmFileName)
+UINT64 CNtfsFileSystem::GetOffsetByFileNameInIndex(UCHAR *prmBuf,UINT16 prmOffset,UINT32 prmBufLen,const CStringUtil &prmFileName)
 {
 	UINT64 tmpResult = 0;
 	wchar_t tmpUnicodeFileName[MAX_PATH] = {0};
@@ -882,7 +899,7 @@ UINT64	CNtfsFileSystem::GetOffsetByFileNameInIndex(UCHAR *prmBuf,UINT16 prmOffse
 	return tmpResult; 
 }
 
-UINT64	CNtfsFileSystem::GetFileSize(UCHAR *prmMFTRecord)
+UINT64 CNtfsFileSystem::GetFileSize(UCHAR *prmMFTRecord)
 {
 	UCHAR szAttrValue[1024] = { 0 };
 	UCHAR szAttrList[1024] = {0};
