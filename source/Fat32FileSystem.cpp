@@ -54,10 +54,7 @@ void CFat32FileSystem::Init()
 UINT64	CFat32FileSystem::ReadFileContent(CBaseFileObject *prmFileObject, UCHAR prmDstBuf[], UINT64 prmByteOff, UINT64 prmByteToRead)
 {
 	UINT64 tmpResult = 0;
-	if (prmFileObject->GetFileType() != FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_FILE)
-	{
-		return 0;
-	}
+	if (prmFileObject->GetFileType() != FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_FILE) return 0;
 	UINT64 tmpFileSize = prmFileObject->GetFileSize();
 	File_Content_Extent	*tmpFileExtent = prmFileObject->GetFileExtent();
 	//请求读取的文件偏移大于文件内容。

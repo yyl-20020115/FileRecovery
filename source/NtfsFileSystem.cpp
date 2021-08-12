@@ -9,10 +9,7 @@ CNtfsFileSystem::CNtfsFileSystem(IBaseReader *prmReader)
 	: CBaseFileSystem(prmReader)
 	, m_mftStartCluster()
 	, m_clustersPerIndex()
-	, m_mftRunList()
-{
-
-}
+	, m_mftRunList() {}
 
 CNtfsFileSystem::~CNtfsFileSystem()
 {
@@ -28,7 +25,6 @@ void CNtfsFileSystem::Init()
 	this->SetBytesPerSector(*bytesPerSector);
 	UINT8 *sectorsPerCluster = (UINT8*)&szBuf[0xD];
 	this->SetSectorsPerCluster(*sectorsPerCluster);
-
 	this->m_mftStartCluster = *((UINT64*)&szBuf[0x30]);
 	this->m_clustersPerIndex = *((UINT32*)&szBuf[0x44]);
 	//获取$MFT文件0x80数据运行流
@@ -50,25 +46,26 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 	UINT32 nameLenOffset = 0;
 	UINT32 nameLen = 0;
 	UINT16 usnOffset = 0;
+	UINT32 ms = sizeof(UCHAR) * clusterSize;
 	//FileInfo	fileInfo;
 	//分配一个簇的大小
-	UCHAR *szBuf = (UCHAR*)malloc(sizeof(UCHAR)*clusterSize);
-	if (szBuf == NULL) return;
+	UCHAR *szBuf = (UCHAR*)malloc(ms);
+	if (szBuf == 0) return;
 
 	Ntfs_Data_Run *p = this->m_mftRunList;
 	//遍历mft 0x80属性所有运行数据，运行数据所存数据为mft记录头。每个mft记录头1024字节
 	while (p != 0)
 	{
-		for (int i = 0; i < p->length; i++)
+		for (UINT64 i = 0; i < p->length; i++)
 		{
-			UINT64 clusterOffset = p->lcn*m_sectorsPerCluster + i*m_sectorsPerCluster;
+			UINT64 clusterOffset = p->lcn * this->m_sectorsPerCluster + i * this->m_sectorsPerCluster;
 			this->ReadBuf(szBuf, clusterOffset, clusterSize);
 			usnOffset = *(UINT16*)&szBuf[4];
-			for (UINT32 j = 0; j < m_sectorsPerCluster; j++)
+			for (size_t j = 0; j < m_sectorsPerCluster; j++)
 			{
 				memcpy(szBuf + 0x1FE + j * this->m_bytesPerSector, szBuf + usnOffset + 2 + j * 2, 2);//恢复每个扇区最后两个字节数据
 			}
-			for (UINT32 j = 0; j < clusterSize ; j += 1024)
+			for (size_t j = 0; j < clusterSize ; j += 1024)
 			{
 				if (szBuf[j + 0x16] == 0)
 				{
@@ -86,7 +83,7 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 					nameLen = *(UINT8*)(szAttrValue + nameLenOffset);
 					//获取文件名
 					memset(szFileName, 0, sizeof(szFileName));
-					memcpy(szFileName, szAttrValue + nameLenOffset + 2, nameLen << 1);
+					memcpy(szFileName, szAttrValue + nameLenOffset + 2,((size_t)nameLen) << 1);
 #ifndef _UNICODE
 					::WideCharToMultiByte(CP_THREAD_ACP, 0, (LPCWSTR)szFileName, -1, szAnsiName, MAX_PATH * 2, 0, 0);
 #endif
@@ -116,7 +113,7 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 		}
 		p = p->next;
 	}
-	free(szBuf);
+	::free(szBuf);
 }
 
 void CNtfsFileSystem::GetMFTRunList()
@@ -189,8 +186,8 @@ void CNtfsFileSystem::GetDataRunList(UCHAR *prmBuf,UINT16 prmRunListOffset,Ntfs_
 	UINT64 lcn = 0;
 	UINT16 bufOffset = prmRunListOffset;
 	UINT32 temp = 0;
-	*prmList = NULL;
-	Ntfs_Data_Run *p = NULL;
+	*prmList = 0;
+	Ntfs_Data_Run *p = 0;
 
 	//buff[off]  低四位记录后面几个字节为长度 , 高4位记录几个字节为起始簇号
 	//先计算长度
@@ -221,7 +218,7 @@ void CNtfsFileSystem::GetDataRunList(UCHAR *prmBuf,UINT16 prmRunListOffset,Ntfs_
 				lcn = lcn + prmBuf[bufOffset + prmBuf[bufOffset] % 16 + 1 + j] * (UINT64)pow((long double)256, j);
 			}
 		}
-		Ntfs_Data_Run *datarun = new Ntfs_Data_Run;
+		Ntfs_Data_Run *datarun = new Ntfs_Data_Run();
 		if (*prmList == NULL)
 		{
 			*prmList = datarun;
@@ -230,7 +227,7 @@ void CNtfsFileSystem::GetDataRunList(UCHAR *prmBuf,UINT16 prmRunListOffset,Ntfs_
 		datarun->vcn = 0;
 		datarun->length = index_alloc_size;//表示该数据流占用多少簇
 
-		if (p != NULL)
+		if (p != 0)
 		{
 			datarun->vcn += p->length;
 			p->next = datarun;
@@ -266,7 +263,7 @@ UINT32 CNtfsFileSystem::GetExtendMFTAttrValue(UINT64 prmSeqNum,NTFS_ATTRDEF prmA
 	UINT64 tmpOffset = this->GetOffsetByMFTRef(prmSeqNum);
 	this->ReadBuf(tmpBuf,tmpOffset/512,1024);
 	UINT16 tmpUsnOffset = *(UINT16*)&tmpBuf[4];
-	if (tmpUsnOffset + 6 < sizeof(tmpBuf)) {
+	if ((size_t)tmpUsnOffset + 6 < sizeof(tmpBuf)) {
 		memcpy(tmpBuf + 0x1FE, tmpBuf + tmpUsnOffset + 2, 2);
 		memcpy(tmpBuf + 0x3FE, tmpBuf + tmpUsnOffset + 4, 2);
 		if (this->GetAttrValue(prmAttrType, tmpBuf, prmAttrValue))
@@ -281,23 +278,18 @@ UINT64 CNtfsFileSystem::GetOffsetByMFTRef(UINT64 prmSeqNo)
 {
 	prmSeqNo = prmSeqNo & MFTREFMASK;
 	UINT64 tmpOffset = prmSeqNo<<1;
-	tmpOffset = tmpOffset * m_bytesPerSector;
-	UINT64 tmpVCN = tmpOffset/m_sectorsPerCluster/m_bytesPerSector;
-	Ntfs_Data_Run *p = m_mftRunList;
-	while(p!=NULL)
+	tmpOffset = tmpOffset * this->m_bytesPerSector;
+	UINT64 tmpVCN = tmpOffset / this->m_sectorsPerCluster / this->m_bytesPerSector;
+	Ntfs_Data_Run *p = this->m_mftRunList;
+	while(p!= 0)
 	{
-		if(tmpVCN > p->vcn && tmpVCN < p->vcn+p->length)
-		{
-			break;
-		}
+		if (tmpVCN > p->vcn && tmpVCN < p->vcn + p->length) break;
 		p = p->next;
 	}
-	if(p==NULL)
-	{
-		return 0;
-	}
-	UINT64 tmpOfs = tmpOffset-p->vcn*m_sectorsPerCluster*m_bytesPerSector;
-	return tmpOfs + p->lcn*m_sectorsPerCluster*m_bytesPerSector;
+	if (p == 0) return 0;
+
+	UINT64 tmpOfs = tmpOffset-p->vcn * this->m_sectorsPerCluster * this->m_bytesPerSector;
+	return tmpOfs + p->lcn * this->m_sectorsPerCluster * this->m_bytesPerSector;
 }
 
 void CNtfsFileSystem::GetFileFromIndexRoot(UCHAR *prmAttrValue,vector<CBaseFileObject*> *prmFileArray)
@@ -312,7 +304,7 @@ void CNtfsFileSystem::GetFileFromIndexRoot(UCHAR *prmAttrValue,vector<CBaseFileO
 	//真实索引项大小需要减去从0x30到第一索引的偏移量值
 	tmpTotalSize -= tmpAttrOffset;
 	tmpAttrOffset += 0x30;
-	UINT8	tmpFlags = *(UINT8*)(prmAttrValue+0x3C);
+	UINT8 tmpFlags = *(UINT8*)(prmAttrValue+0x3C);
 	if(tmpFlags==1)
 	{
 		//需要外部索引才行。这个就不需要再解析了
@@ -331,21 +323,22 @@ void CNtfsFileSystem::GetFileFromAllocIndex(UCHAR *prmAttrValue,vector<CBaseFile
 
 	UINT32 tmpClusterSize = m_sectorsPerCluster * m_bytesPerSector;
 	UCHAR *tmpClusterBuf = (UCHAR*)malloc(tmpClusterSize);
-	Ntfs_Data_Run *tmpDataRunList = NULL;
+	if (tmpClusterBuf == 0) return;
+	Ntfs_Data_Run *tmpDataRunList = 0;
 	this->GetDataRunList(prmAttrValue,tmpIndexOffset,&tmpDataRunList);
 	Ntfs_Data_Run *p = tmpDataRunList;
 	
-	while(p!=NULL)
+	while(p!=0)
 	{
 		//每次只处理一个簇的大小
-		for(int i=0;i<p->length;i++)
+		for(UINT64 i=0;i<p->length;i++)
 		{
-			this->ReadBuf(tmpClusterBuf,p->lcn*m_sectorsPerCluster + i*m_sectorsPerCluster,tmpClusterSize);
+			this->ReadBuf(tmpClusterBuf,p->lcn*m_sectorsPerCluster + i * this->m_sectorsPerCluster,tmpClusterSize);
 			//更新序列号更正
 			UINT16 usnOffset = *(UINT16*)&tmpClusterBuf[4];
-			for (UINT32 j = 0; j < m_sectorsPerCluster; j++)
+			for (UINT32 j = 0; j < this->m_sectorsPerCluster; j++)
 			{
-				memcpy(tmpClusterBuf + 0x1FE + j*m_bytesPerSector, tmpClusterBuf + usnOffset + 2 + j * 2, 2);//恢复每个扇区最后两个字节数据
+				memcpy(tmpClusterBuf + 0x1FE + j * (size_t)this->m_bytesPerSector, tmpClusterBuf + usnOffset + 2 + j * 2, 2);//恢复每个扇区最后两个字节数据
 			}
 			UINT32 tmpFirstIndex = *(UINT32*)(tmpClusterBuf+0x18);
 			tmpFirstIndex += 0x18;
@@ -355,7 +348,7 @@ void CNtfsFileSystem::GetFileFromAllocIndex(UCHAR *prmAttrValue,vector<CBaseFile
 		p = p->next;
 	}
 	this->FreeRunList(tmpDataRunList);
-	free(tmpClusterBuf);
+	::free(tmpClusterBuf);
 }
 
 void CNtfsFileSystem::ParseFileFromIndex(UCHAR *prmBuf,UINT16 prmOffset,UINT32 prmBufLen,vector<CBaseFileObject*> *prmFileArray)
@@ -397,7 +390,6 @@ void CNtfsFileSystem::ParseFileFromIndex(UCHAR *prmBuf,UINT16 prmOffset,UINT32 p
 			if(tmpNameSpace==2)
 			{
 				//if(!this->SetFileWin32Name(tmpFileOffset,tmpFileObject))
-				
 				CStringUtil	tmpFileNameStr =  this->GetFileWin32Name(tmpFileOffset);
 				tmpFileObject->SetFileName(tmpFileNameStr);
 				if(tmpFileNameStr.GetLength()==0)
@@ -411,7 +403,7 @@ void CNtfsFileSystem::ParseFileFromIndex(UCHAR *prmBuf,UINT16 prmOffset,UINT32 p
 			else
 			{
 				memset(tmpUnicodeFileName,0,sizeof(tmpUnicodeFileName));
-				memcpy(tmpUnicodeFileName,prmBuf+tmpAttrOffset+0x52,tmpFileNameLen<<1);
+				memcpy(tmpUnicodeFileName,prmBuf+tmpAttrOffset+0x52, ((size_t)tmpFileNameLen)<<1);
 #ifdef _UNICODE
 				tmpFileObject->SetFileName(tmpUnicodeFileName);
 #else
@@ -421,7 +413,7 @@ void CNtfsFileSystem::ParseFileFromIndex(UCHAR *prmBuf,UINT16 prmOffset,UINT32 p
 #endif
 			}
 			tmpFileObject->SetFileStartSector(tmpFileOffset/m_bytesPerSector);
-			UINT32	tmpFileFlags = *(UINT32*)(prmBuf+tmpAttrOffset+0x48);
+			UINT32 tmpFileFlags = *(UINT32*)(prmBuf+tmpAttrOffset+0x48);
 			if(tmpFileFlags & 0x10000000)
 			{
 				tmpFileObject->SetFileType(FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_DIRECTORY);
@@ -441,7 +433,7 @@ void CNtfsFileSystem::ParseFileFromIndex(UCHAR *prmBuf,UINT16 prmOffset,UINT32 p
 
 CStringUtil CNtfsFileSystem::GetFileWin32Name(UINT64 prmOffset)
 {
-	UCHAR tmpBuf[1024] = {0};
+	UCHAR tmpBuf[1024*2] = {0};
 	wchar_t tmpFileName[MAX_PATH] = {0};
 	char tmpAnsiName[MAX_PATH*2] = {0};
 	this->ReadBuf(tmpBuf,prmOffset/m_bytesPerSector,1024);
@@ -458,17 +450,15 @@ CStringUtil CNtfsFileSystem::GetFileWin32Name(UINT64 prmOffset)
 	UINT32 attrLen = 0;//属性的长度
 	while (attrOffset < 1024)
 	{
-		if (tmpBuf[attrOffset] == 0xff)
-		{
-			return 0;
-		}
+		if (tmpBuf[attrOffset] == 0xff) return 0;
+
 		attrLen = *(UINT16*)&tmpBuf[attrOffset + 4];
 		//找到对应的属性，将其属性值拷到szAttrValue中
 		if (tmpBuf[attrOffset] == (int)NTFS_ATTRDEF::ATTR_FILE_NAME && tmpBuf[attrOffset+0x59]!=2)
 		{
 			UINT8	tmpFileLen = tmpBuf[attrOffset + 0x58];
 			memset(tmpFileName,0,sizeof(tmpFileName));
-			memcpy(tmpFileName,tmpBuf+attrOffset+0x5A,tmpFileLen<<1);
+			memcpy(tmpFileName,tmpBuf+attrOffset+0x5A, ((size_t)tmpFileLen)<<1);
 #ifdef _UNICODE
 			return tmpFileName;
 #else
@@ -509,7 +499,7 @@ void CNtfsFileSystem::GetFileExtent(UCHAR *prmBuf,UINT64 prmMftSector,File_Conte
 	//读取0x20属性列表
 	if(this->GetAttrValue(NTFS_ATTRDEF::ATTR_ATTRIBUTE_LIST,prmBuf,szAttrList))
 	{
-		UINT32	tmpOffset = 0x18;
+		UINT32 tmpOffset = 0x18;
 		while(tmpOffset=this->GetAttrFromAttributeList(NTFS_ATTRDEF::ATTR_DATA,tmpOffset,szAttrList,szAttrValue))
 		{
 			UINT16 tmpLen = *(UINT16*)(szAttrValue+4);
@@ -517,9 +507,9 @@ void CNtfsFileSystem::GetFileExtent(UCHAR *prmBuf,UINT64 prmMftSector,File_Conte
 			if(this->GetExtendMFTAttrValue(seqNum, NTFS_ATTRDEF::ATTR_DATA,szExtentAttrValue))
 			{
 				UINT16 runlistOffset = *(UINT16*)&szExtentAttrValue[0x20];
-				Ntfs_Data_Run *p = NULL;
+				Ntfs_Data_Run *p = 0;
 				this->GetDataRunList(szExtentAttrValue,runlistOffset,&p);
-				if (runList == NULL)
+				if (runList == 0)
 				{
 					runList = p;
 					q = p;
@@ -538,7 +528,7 @@ void CNtfsFileSystem::GetFileExtent(UCHAR *prmBuf,UINT64 prmMftSector,File_Conte
 	}
 	if(runList!=NULL)
 	{
-		goto END;
+		goto Quit;
 	}
 	//读取0x80数据运行
 	if (this->GetAttrValue(NTFS_ATTRDEF::ATTR_DATA, prmBuf, szAttrValue))
@@ -554,21 +544,21 @@ void CNtfsFileSystem::GetFileExtent(UCHAR *prmBuf,UINT64 prmMftSector,File_Conte
 		}
 		else //文件内容为非常驻
 		{
-			UINT16	runlistOffset = *(UINT16*)&szAttrValue[0x20];
+			UINT16 runlistOffset = *(UINT16*)&szAttrValue[0x20];
 			this->GetDataRunList(szAttrValue, runlistOffset, &runList);
-			goto END;
+			goto Quit;
 		}
 	}
-END:
+Quit:
 	Ntfs_Data_Run *p = runList;
 	File_Content_Extent *tmpExtent = *prmFileExtent;
-	while (p != NULL && p->lcn != 0 && p->length != 0 && p->length < m_totalSector / m_sectorsPerCluster)
+	while (p != 0 && p->lcn != 0 && p->length != 0 && p->length < m_totalSector / m_sectorsPerCluster)
 	{
 		File_Content_Extent *t = new File_Content_Extent();
-		t->totalSector = p->length*m_sectorsPerCluster;
-		t->startSector = p->lcn*m_sectorsPerCluster;
+		t->totalSector = p->length * this->m_sectorsPerCluster;
+		t->startSector = p->lcn * this->m_sectorsPerCluster;
 		//设置哪些扇区是删除文件
-		if (tmpExtent == NULL)
+		if (tmpExtent == 0)
 		{
 			tmpExtent = t;
 			*prmFileExtent = t;
@@ -587,11 +577,8 @@ UINT64	CNtfsFileSystem::ReadFileContent(UCHAR prmDstBuf[],UINT64 prmByteOff,UINT
 {
 	UINT64 tmpResult = 0;
 	UINT64 tmpByteRead = 0;
-	if (prmByteOff >= prmFileSize)
-	{
-		return 0;
-	}
-	if(prmByteOff+prmByteToRead > prmFileSize)
+	if (prmByteOff >= prmFileSize) return 0;
+	if (prmByteOff+prmByteToRead > prmFileSize)
 	{
 		prmByteToRead = prmFileSize - prmByteOff;
 	}
@@ -615,22 +602,19 @@ UINT64	CNtfsFileSystem::ReadFileContent(UCHAR prmDstBuf[],UINT64 prmByteOff,UINT
 
 	File_Content_Extent *p = prmFileExtent;
 	//prmByteOff所在扇区信息
-	while(p && prmByteOff >= p->totalSector*m_bytesPerSector)
+	while(p && prmByteOff >= p->totalSector * this->m_bytesPerSector)
 	{
 		prmByteOff -= p->totalSector*m_bytesPerSector;
 		p = p->next;
 	}
 
-	if(p==NULL)
-	{
-		return 0;
-	}
+	if (p == 0) return 0;
 
 	//处理文件偏移不是512整数倍的情况
 	if(prmByteOff %512 != 0)
 	{
 		UCHAR tmpBuf[512] = { 0 };
-		tmpByteRead = 512 - prmByteOff%512;
+		tmpByteRead = 512 - prmByteOff % 512;
 		if (prmByteToRead <= tmpByteRead)
 		{
 			tmpByteRead = prmByteToRead;
@@ -650,7 +634,7 @@ UINT64	CNtfsFileSystem::ReadFileContent(UCHAR prmDstBuf[],UINT64 prmByteOff,UINT
 		{
 			prmByteOff = prmByteOff - p->totalSector*m_bytesPerSector;
 			p = p->next;
-			if(p==NULL)
+			if(p == 0)
 			{
 				return tmpResult;
 			}
@@ -658,9 +642,10 @@ UINT64	CNtfsFileSystem::ReadFileContent(UCHAR prmDstBuf[],UINT64 prmByteOff,UINT
 	}
 
 	//计算当前块还有多少可读字节
-	UINT64 tmpRunListRemainBytes = p->totalSector * m_bytesPerSector - prmByteOff;
+	UINT64 tmpRunListRemainBytes = p->totalSector * this->m_bytesPerSector - prmByteOff;
 	//计算文件偏移映射到磁盘后扇区值
-	UINT64 tmpOff = p->startSector + prmByteOff/512;
+	UINT64 tmpOff = p->startSector + prmByteOff / 512;
+
 	while(p && (tmpRunListRemainBytes < (prmByteToRead-tmpResult)) )
 	{
 		//整块连续扇区读取
@@ -671,7 +656,7 @@ UINT64	CNtfsFileSystem::ReadFileContent(UCHAR prmDstBuf[],UINT64 prmByteOff,UINT
 			return tmpResult;
 		}
 		p = p->next;
-		if (p == NULL)
+		if (p == 0)
 		{
 			return tmpResult;
 		}
@@ -680,56 +665,19 @@ UINT64	CNtfsFileSystem::ReadFileContent(UCHAR prmDstBuf[],UINT64 prmByteOff,UINT
 	}
 
 	//循环结束，剩余请求字节数小于块的大小。
-	if(prmByteToRead!=tmpResult)
+	if(prmByteToRead != tmpResult)
 	{
 		tmpByteRead  = this->ReadBuf(prmDstBuf + tmpResult, tmpOff, prmByteToRead-tmpResult);
 		tmpResult += tmpByteRead;
 	}
 	return tmpResult;
-#if 0
-	//当前run list还有多少字节可读
-	UINT64 runListRemainSize = p->totalSector*m_bytesPerSector - prmByteOff;
-	UINT64	fileOffset = p->startSector*m_bytesPerSector+prmByteOff;
-	while (p && (runListRemainSize < (prmByteToRead - tmpResult)))
-	{
-		tmpByteRead = this->ReadBuf(prmDstBuf + tmpResult, fileOffset / m_bytesPerSector, (UINT32)runListRemainSize);
-		tmpResult += tmpByteRead;
-		if (tmpByteRead != runListRemainSize)
-		{
-			goto END;
-		}
-		p = p->next;
-		if(p==NULL)
-		{
-			goto END;
-		}
-		runListRemainSize = p->totalSector*m_bytesPerSector;
-		fileOffset = p->startSector*m_bytesPerSector;
-
-		//result = fread(szBuf+ byteReaded,)
-	}
-	//比如文件大小为2k，但我想读取3k内容，此时最多只能读取2k内容，就会出现p=NULL的情况
-	if (p == NULL)
-	{
-		goto END;
-	}
-
-	//处理最后剩余一些字节
-	if(prmByteToRead!=tmpResult)
-	{
-		tmpByteRead  = this->ReadBuf(prmDstBuf + tmpResult, fileOffset  / m_bytesPerSector, prmByteToRead-tmpResult);
-		tmpResult += tmpByteRead;
-	}
-END:
-	return tmpResult;
-#endif
 }
 
 void CNtfsFileSystem::FreeFileExtent(File_Content_Extent *prmFileExtent)
 {
 	File_Content_Extent *p = prmFileExtent;
-	File_Content_Extent *q = NULL;
-	while (p != NULL)
+	File_Content_Extent *q = 0;
+	while (p != 0)
 	{
 		q = p;
 		p = p->next;
@@ -743,11 +691,9 @@ UINT64	CNtfsFileSystem::GetOffsetByFileName(UINT64 prmParentFileOffset,const CSt
 	UCHAR tmpAttrValue[1024] = {0};
 	UCHAR tmpAttrList[1024] = {0};
 	UINT64 tmpFileOffset = 0;
-	if(prmParentFileOffset==0)
-	{
-		return NULL;
-	}
-	this->ReadBuf(tmpBuf,prmParentFileOffset/m_bytesPerSector,1024);
+	if (prmParentFileOffset == 0) return 0;
+
+	this->ReadBuf(tmpBuf,prmParentFileOffset/ this->m_bytesPerSector,1024);
 	UINT16	tmpUsnOffset = *(UINT16*)&tmpBuf[4];//更新序列号的偏移值
 	memcpy(tmpBuf+0x1FE,tmpBuf+tmpUsnOffset+2,2);
 	memcpy(tmpBuf+0x3FE,tmpBuf+tmpUsnOffset+4,2);
@@ -758,7 +704,7 @@ UINT64	CNtfsFileSystem::GetOffsetByFileName(UINT64 prmParentFileOffset,const CSt
 		UINT32 tmpOffset = 0x18;
 		while(tmpOffset=this->GetAttrFromAttributeList(NTFS_ATTRDEF::ATTR_INDEX_ROOT,tmpOffset,tmpAttrList,tmpAttrValue))
 		{
-			UINT16	*tmpLen = (UINT16*)(tmpAttrValue+4);
+			UINT16 *tmpLen = (UINT16*)(tmpAttrValue+4);
 			tmpOffset += *tmpLen;
 			UINT64 seqNum = *(UINT64*)&tmpAttrValue[0x10];
 			seqNum = seqNum & MFTREFMASK;
@@ -840,6 +786,7 @@ UINT64 CNtfsFileSystem::GetOffsetFromAllocByFileName(UCHAR *prmAttrValue,const C
 	}
 	UINT32 tmpClusterSize = m_sectorsPerCluster * m_bytesPerSector;
 	UCHAR *tmpClusterBuf = (UCHAR*)malloc(tmpClusterSize);
+	if (tmpClusterBuf == 0) return 0;
 	Ntfs_Data_Run *tmpDataRunList = NULL;
 	this->GetDataRunList(prmAttrValue,tmpIndexOffset,&tmpDataRunList);
 	Ntfs_Data_Run *p = tmpDataRunList;
@@ -847,14 +794,14 @@ UINT64 CNtfsFileSystem::GetOffsetFromAllocByFileName(UCHAR *prmAttrValue,const C
 	while(p!=NULL)
 	{
 		//每次只处理一个簇的大小
-		for(int i=0;i<p->length;i++)
+		for(UINT64 i=0;i<p->length;i++)
 		{
-			this->ReadBuf(tmpClusterBuf,p->lcn*m_sectorsPerCluster + i*m_sectorsPerCluster,tmpClusterSize);
+			this->ReadBuf(tmpClusterBuf,p->lcn*m_sectorsPerCluster + i*this->m_sectorsPerCluster,tmpClusterSize);
 			//更新序列号更正
 			UINT16 usnOffset = *(UINT16*)&tmpClusterBuf[4];
-			for (UINT32 j = 0; j < m_sectorsPerCluster; j++)
+			for (UINT64 j = 0; j < this->m_sectorsPerCluster; j++)
 			{
-				memcpy(tmpClusterBuf + 0x1FE + j*m_bytesPerSector, tmpClusterBuf + usnOffset + 2 + j * 2, 2);//恢复每个扇区最后两个字节数据
+				memcpy(tmpClusterBuf + 0x1FE + j*this->m_bytesPerSector, tmpClusterBuf + usnOffset + 2 + j * 2, 2);//恢复每个扇区最后两个字节数据
 			}
 			UINT32	tmpFirstIndex = *(UINT32*)(tmpClusterBuf+0x18);
 			tmpFirstIndex += 0x18;
@@ -872,7 +819,7 @@ UINT64 CNtfsFileSystem::GetOffsetFromAllocByFileName(UCHAR *prmAttrValue,const C
 		p = p->next;
 	}
 	this->FreeRunList(tmpDataRunList);
-	free(tmpClusterBuf);
+	::free(tmpClusterBuf);
 	return tmpFileOffset;
 }
 
@@ -950,26 +897,23 @@ UINT64	CNtfsFileSystem::GetFileSize(UCHAR *prmMFTRecord)
 		while(tmpOffset=this->GetAttrFromAttributeList(NTFS_ATTRDEF::ATTR_DATA,tmpOffset,szAttrList,szAttrValue))
 		{
 			UINT16 *tmpLen = (UINT16*)(szAttrValue+4);
-			UINT64 seqNum =   *(UINT64*)(szAttrValue + 0x10);
+			UINT64 seqNum = *(UINT64*)(szAttrValue + 0x10);
 			if(this->GetExtendMFTAttrValue(seqNum, NTFS_ATTRDEF::ATTR_DATA,szExtendMFTAttrValue))
 			{
 				UINT64 ts = *(UINT64*)&szExtendMFTAttrValue[0x30];
 				if (ts == 0ULL) break;
-
 				if (tmpResult > this->GetMaxFileSize()) {
 					break;
 				}
 				tmpResult += ts;
 			}
-			else {
+			else
+			{
 				break;
 			}
 		}
 	}
-	if(tmpResult != 0)
-	{
-		return tmpResult;
-	}
+	if(tmpResult != 0) return tmpResult;
 
 	if (this->GetAttrValue(NTFS_ATTRDEF::ATTR_DATA, prmMFTRecord, szAttrValue))
 	{//找到0x80数据属性
