@@ -250,7 +250,7 @@ void CFat32FileSystem::ParseLongFileName(TCHAR prmLongFileName[], size_t prmFile
 	{
 		return;
 	}
-	::WideCharToMultiByte(CP_THREAD_ACP, 0, (WCHAR*)tmpFileName, -1, prmLongFileName, prmFileNameLength, 0, 0);
+	::WideCharToMultiByte(CP_THREAD_ACP, 0, (WCHAR*)tmpFileName, -1, prmLongFileName, (int)prmFileNameLength, 0, 0);
 #else
 	::memcpy(prmLongFileName,tmpFileName,_tcslen(tmpFileName)*sizeof(TCHAR));
 #endif
