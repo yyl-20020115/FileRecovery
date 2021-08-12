@@ -120,22 +120,46 @@ void RestoreFiles(const CStringUtil& target_dir, CBaseFileSystem* fileSystem, co
 int main(int argc, char* argv[])
 {
 	if (argc < 3) {
-		std::cout << "undelete <drive_letter> <target_dir>" << std::endl;
+		show_info:
+		std::cout << "undelete usage:" << std::endl;
+		std::cout << "  save all deleted file to target_dir(not on same drive as deleted files)" << std::endl;
+		std::cout << "    undelete -s <drive_letter> <target_dir>" << std::endl;
+		std::cout << "  list deletion informatin to list.json" << std::endl;
+		std::cout << "    undelete -l <drive_letter> <list.json>" << std::endl;
+		std::cout << "  undelete files within list.json to target_dir" << std::endl;
+		std::cout << "    undelete -u <drive_letter> <list.json> <target_dir>" << std::endl;
 		return -1;
 	}
 
-	CBaseFileSystem	*fileSystem = CFileSystemFactory::GetFileSystem(argv[1]);
+	std::string program = argv[0];
+	std::string options = argv[1];
+	if (options == "-u" && argc < 4) goto show_info;
+
+	std::string drive = argv[2];
+	std::string target = (options=="-s") ? argv[3] : argv[4];
+	std::string list = (options == "-l" || options == "-u") ? argv[3] : "";
+
+	auto fileSystem = CFileSystemFactory::GetFileSystem(drive.c_str());
 	if (fileSystem != 0)
 	{
 		vector<CBaseFileObject*> fileArray;
-
-		fileSystem->GetDeletedFiles(fileArray);
-
-		RestoreFiles(argv[2], fileSystem, fileArray);
-
+		if (options == "-s")
+		{
+			fileSystem->GetDeletedFiles(fileArray);
+			RestoreFiles(target.c_str(), fileSystem, fileArray);
+		}
+		else if (options == "-l")
+		{
+			fileSystem->GetDeletedFiles(fileArray);
+			SaveInfo(list.c_str(), fileArray);
+		}
+		else if (options == "-u")
+		{
+			LoadInfo(list.c_str(), fileArray);
+			RestoreFiles(target.c_str(), fileSystem, fileArray);
+		}
+		for (auto f : fileArray) delete f;
 		delete fileSystem;
-
-		for (int i = 0; i < fileArray.size(); i++) fileArray[i]->Destroy();
 	}
 	return 0;
 }

@@ -70,7 +70,8 @@
 
 namespace json11 {
 
-enum JsonParse {
+enum class JsonParse:int 
+{
     STANDARD, COMMENTS
 };
 
@@ -79,7 +80,7 @@ class JsonValue;
 class Json final {
 public:
     // Types
-    enum Type {
+    enum class Type : int{
         NUL, NUMBER, BOOL, STRING, ARRAY, OBJECT
     };
 
@@ -128,12 +129,12 @@ public:
     // Accessors
     Type type() const;
 
-    bool is_null()   const { return type() == NUL; }
-    bool is_number() const { return type() == NUMBER; }
-    bool is_bool()   const { return type() == BOOL; }
-    bool is_string() const { return type() == STRING; }
-    bool is_array()  const { return type() == ARRAY; }
-    bool is_object() const { return type() == OBJECT; }
+    bool is_null()   const { return type() == Type::NUL; }
+    bool is_number() const { return type() == Type::NUMBER; }
+    bool is_bool()   const { return type() == Type::BOOL; }
+    bool is_string() const { return type() == Type::STRING; }
+    bool is_array()  const { return type() == Type::ARRAY; }
+    bool is_object() const { return type() == Type::OBJECT; }
 
     // Return the enclosed value if this is a number, 0 otherwise. Note that json11 does not
     // distinguish between integer and non-integer numbers - number_value() and int_value()

@@ -31,7 +31,6 @@ public:
 	*
 	**************************************/
 	CBaseFileObject();
-private:
 	/*************************************
 	*
 	*	函数名：	~CBaseFileObject
@@ -136,7 +135,6 @@ public:
 
 	File_Content_Extent *GetFileExtent(){ return m_fileExtent; }
 
-	void Destroy();
 private:
 	CStringUtil m_fileName;//文件名称，文件绝对路径 = m_path+m_fileName
 	CStringUtil m_accessTime;//最后访问时间

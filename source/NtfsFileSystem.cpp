@@ -61,7 +61,7 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 			UINT64 clusterOffset = p->lcn * this->m_sectorsPerCluster + i * this->m_sectorsPerCluster;
 			this->ReadBuf(szBuf, clusterOffset, clusterSize);
 			usnOffset = *(UINT16*)&szBuf[4];
-			for (size_t j = 0; j < m_sectorsPerCluster; j++)
+			for (size_t j = 0; j < this->m_sectorsPerCluster; j++)
 			{
 				memcpy(szBuf + 0x1FE + j * this->m_bytesPerSector, szBuf + usnOffset + 2 + j * 2, 2);//恢复每个扇区最后两个字节数据
 			}
@@ -88,14 +88,14 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 					::WideCharToMultiByte(CP_THREAD_ACP, 0, (LPCWSTR)szFileName, -1, szAnsiName, MAX_PATH * 2, 0, 0);
 #endif
 					//NOTICE: for debugging
-					std::wcout << szFileName << std::endl;
+					//std::wcout << szFileName << std::endl;
 
 					//用于设置文件内容占用了哪些扇区信息
 					File_Content_Extent	*fileExtents = 0;
 
 					this->GetFileExtent(szBuf + j, clusterOffset + j / 512, &fileExtents);
 
-					CBaseFileObject	*fileObject = new CBaseFileObject;
+					CBaseFileObject	*fileObject = new CBaseFileObject();
 #ifdef _UNICODE
 					fileObject->SetFileName(szFileName);
 #else
@@ -185,7 +185,7 @@ void CNtfsFileSystem::GetDataRunList(UCHAR *prmBuf,UINT16 prmRunListOffset,Ntfs_
 	UINT64 index_alloc_size = 0;
 	UINT64 lcn = 0;
 	UINT16 bufOffset = prmRunListOffset;
-	UINT32 temp = 0;
+	UINT32 t = 0;
 	*prmList = 0;
 	Ntfs_Data_Run *p = 0;
 
@@ -204,10 +204,9 @@ void CNtfsFileSystem::GetDataRunList(UCHAR *prmBuf,UINT16 prmRunListOffset,Ntfs_
 		{
 			for (j = 0; j < prmBuf[bufOffset] / 16; j++)
 			{
-
-				temp = ~prmBuf[bufOffset + prmBuf[bufOffset] % 16 + 1 + j];
-				temp = temp & 255;
-				lcn = lcn - temp * (UINT64)pow((long double)256, j);
+				t = ~prmBuf[bufOffset + prmBuf[bufOffset] % 16 + 1 + j];
+				t = t & 255;
+				lcn = lcn - t * (UINT64)pow((long double)256, j);
 			}
 			lcn = lcn - 1;
 		}
@@ -395,7 +394,7 @@ void CNtfsFileSystem::ParseFileFromIndex(UCHAR *prmBuf,UINT16 prmOffset,UINT32 p
 				if(tmpFileNameStr.GetLength()==0)
 				{
 					//如果index中是dos命名空间，在mft头部没有找到win32命名空间的文件名。这样的文件不要
-					tmpFileObject->Destroy();
+					delete tmpFileObject;
 					tmpAttrOffset += tmpIndexItemLen;
 					continue;
 				}
@@ -630,9 +629,9 @@ UINT64	CNtfsFileSystem::ReadFileContent(UCHAR prmDstBuf[],UINT64 prmByteOff,UINT
 		//偏移调整至512倍数。
 		prmByteOff += tmpByteRead;
 		//调整后的偏移超出当前块的范围，需要找下一块内容
-		if(prmByteOff >= p->totalSector*m_bytesPerSector)
+		if(prmByteOff >= p->totalSector * this->m_bytesPerSector)
 		{
-			prmByteOff = prmByteOff - p->totalSector*m_bytesPerSector;
+			prmByteOff = prmByteOff - p->totalSector * this->m_bytesPerSector;
 			p = p->next;
 			if(p == 0)
 			{
@@ -660,7 +659,7 @@ UINT64	CNtfsFileSystem::ReadFileContent(UCHAR prmDstBuf[],UINT64 prmByteOff,UINT
 		{
 			return tmpResult;
 		}
-		tmpRunListRemainBytes = p->totalSector*m_bytesPerSector;
+		tmpRunListRemainBytes = p->totalSector * this->m_bytesPerSector;
 		tmpOff = p->startSector;
 	}
 
@@ -985,14 +984,13 @@ CStringUtil	CNtfsFileSystem::FileTimeToString(UINT64 prmFileTime)
 
 FILE_OBJECT_TYPE CNtfsFileSystem::GetFileType(UCHAR *prmMFTRecord)
 {
-	UINT16 tmpFlag = *(UINT16*)(prmMFTRecord+0x16);
-	if(tmpFlag==1)
-	{
+	UINT16 flag = *(UINT16*)(prmMFTRecord+0x16);
+	switch (flag) {
+	case 1:
 		return FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_FILE;
-	}
-	else if(tmpFlag==2)
-	{
+	case 2:
 		return FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_DIRECTORY;
+	default:
+		return FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_UNKNOWN;
 	}
-	return FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_UNKNOWN;
 }

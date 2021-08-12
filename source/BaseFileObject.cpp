@@ -67,8 +67,3 @@ UINT64 CBaseFileObject::GetFileSize()
 {
 	return m_fileSize;
 }
-
-void CBaseFileObject::Destroy()
-{
-	delete this;
-}
