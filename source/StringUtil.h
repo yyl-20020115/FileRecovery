@@ -23,7 +23,7 @@ public:
 	CStringUtil(LPCTSTR prmStr);
 	//参数为char*或wchar_t*，从prmStr字符串的第prmStart个字
 	//符开始截取，共截取prmLen个字符
-	CStringUtil(LPCTSTR prmStr,int prmStart,int prmLen);
+	CStringUtil(LPCTSTR prmStr, size_t prmStart,size_t prmLen);
 	//拷贝构造，将另一个CStringUtil对象作为当前字符串
 	CStringUtil(const CStringUtil &prmObj);
 	//赋值构造
@@ -37,7 +37,7 @@ public:
 	//向当前字符串对象中追回一个char*或wchar_t表示的字符串
 	//@prmStartPos从字符串的第prmStartPos字符开始截取
 	//@prmLen，从prmStartPos开始截取prmLen个字符
-	CStringUtil	&Append(LPCTSTR prmStr, UINT32 prmStartPos, UINT32 prmLen);
+	CStringUtil	&Append(LPCTSTR prmStr, size_t prmStartPos, size_t prmLen);
 #ifdef _UNICODE
 	//如果当前环境选择的是Unicode编码，可以向当前对象追加char*型字符串
 	CStringUtil	&Append(char *prmStr);
@@ -117,7 +117,7 @@ public:
 	//获取字符串实际缓冲区地址
 	LPCTSTR GetString()const {return m_Buf;}
 	//获取字符串长度
-	int	GetLength(){return m_BufLen;}
+	size_t GetLength(){return m_BufLen;}
 
 	//从当前字符串中查找prmStr子串，如果找到，则返回首字符所在下标值，否则返回-1
 	//查找方式为从左向右开始查
@@ -178,8 +178,8 @@ private:
 	BOOL IsSpaceChar(int prmCharVal);
 private:
 	TCHAR *m_Buf;//用于存放实际字符串
-	UINT32 m_BufLen;//用于表示字符串实际长度
-	UINT32 m_Capacity;//当前分配的字符实际可容纳多少字符
+	size_t m_BufLen;//用于表示字符串实际长度
+	size_t m_Capacity;//当前分配的字符实际可容纳多少字符
 };
 
 #endif

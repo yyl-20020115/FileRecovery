@@ -108,7 +108,7 @@ typedef struct dir_long_entry {
 #define MFTREFMASK	0xFFFFFFFFFFFF
 
 //枚举类型,枚举ntfs所有的属性类型
-enum class NTFS_ATTRDEF : int
+enum class NTFS_ATTRDEF : int 
 {
 	ATTR_STANDARD = 0x10,//标准信息属性
 	ATTR_ATTRIBUTE_LIST = 0x20,//属性列表
@@ -138,9 +138,8 @@ typedef struct _NTFS_Data_Run
 		:lcn()
 		,vcn()
 		,length()
-		,next()
-	{
-	}
+		,next() {}
 } Ntfs_Data_Run;
+
 #pragma pack(pop)
 #endif

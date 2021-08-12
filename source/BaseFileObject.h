@@ -12,7 +12,7 @@
 #include "StringUtil.h"
 #include "CommonUtils.h"
 
-enum class FILE_OBJECT_TYPE
+enum class FILE_OBJECT_TYPE : int
 {
 	FILE_OBJECT_TYPE_UNKNOWN = -1,
 	FILE_OBJECT_TYPE_FILE = 0,

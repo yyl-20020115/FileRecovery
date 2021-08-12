@@ -25,7 +25,7 @@ CStringUtil::CStringUtil(LPCTSTR prmStr)
 
 //参数为char*或wchar_t*，从prmStr字符串的第prmStart个字
 //符开始截取，共截取prmLen个字符
-CStringUtil::CStringUtil(LPCTSTR prmStr,int prmStart,int prmLen)
+CStringUtil::CStringUtil(LPCTSTR prmStr,size_t prmStart, size_t prmLen)
 	: m_Buf(0)
 	, m_BufLen(0)
 	, m_Capacity(0)
@@ -117,7 +117,7 @@ CStringUtil	&CStringUtil::Append(LPCTSTR prmStr)
 //向当前字符串对象中追回一个char*或wchar_t表示的字符串
 //@prmStartPos从字符串的第prmStartPos字符开始截取
 //@prmLen，从prmStartPos开始截取prmLen个字符
-CStringUtil	&CStringUtil::Append(LPCTSTR prmStr, UINT32 prmStartPos, UINT32 prmLen)
+CStringUtil	&CStringUtil::Append(LPCTSTR prmStr, size_t prmStartPos, size_t prmLen)
 {
 	//要截取的字符串个数过大于字符串实际长度
 	if ( (prmLen + prmStartPos > _tcslen(prmStr)) || prmLen==-1) 
@@ -433,7 +433,7 @@ int CStringUtil::FindString(const TCHAR *prmStr)
 	{
 		return -1;
 	}
-	for (size_t i = 0; i <= m_BufLen - tmpLen; i++)
+	for (int i = 0; i <= m_BufLen - tmpLen; i++)
 	{
 		if(memcmp(m_Buf+i,prmStr,tmpLen*sizeof(TCHAR)) == 0)
 		{
@@ -568,7 +568,7 @@ BOOL CStringUtil::EndWithNoCase(const CStringUtil &prmObj)
 //
 CStringUtil	&CStringUtil::Trim()
 {
-	UINT32 i = 0;
+	size_t i = 0;
 	for (i = 0; i < m_BufLen; i++)
 	{
 #ifdef _UNICODE
@@ -663,10 +663,10 @@ void CStringUtil::SplitString(std::vector<CStringUtil> &prmArray, LPCTSTR prmSpl
 CStringUtil CStringUtil::ReplaceStr(TCHAR *prmSrc, TCHAR *prmDst)
 {
 	CStringUtil	tmpResult;
-	UINT32 tmpLastPos = 0;
-	UINT32 tmpPos = 0;
+	size_t tmpLastPos = 0;
+	size_t tmpPos = 0;
 
-	int		tmpLen = _tcslen(prmSrc);
+	size_t tmpLen = _tcslen(prmSrc);
 	while (tmpPos <= m_BufLen)
 	{
 		BOOL	tmpFlag = TRUE;

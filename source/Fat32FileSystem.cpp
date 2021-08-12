@@ -216,7 +216,7 @@ void CFat32FileSystem::ParseShortFileName(DIR_ENTRY *prmDirEntry, TCHAR prmFileN
 		tmpFileName[i++] = prmDirEntry->name[j];
 	}
 #ifdef _UNICODE
-	::MultiByteToWideChar(CP_THREAD_ACP,0,tmpFileName,-1,prmFileName,prmFileNameLength);
+	::MultiByteToWideChar(CP_THREAD_ACP,0,tmpFileName,-1,prmFileName,(int)prmFileNameLength);
 #else
 	memcpy(prmFileName,tmpFileName,prmFileNameLength);
 #endif
