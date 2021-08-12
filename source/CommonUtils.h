@@ -15,7 +15,6 @@
 
 #include "StringUtil.h"
 
-using namespace CommonUtils;
 //用于将两个字节进行大小端转换
 void rev16bit(UCHAR *value);
 
@@ -104,7 +103,6 @@ typedef struct dir_long_entry {
 }DIR_LONG_ENTRY;
 
 #pragma pack(pop)
-
 #pragma pack(push,1)
 
 #define MFTREFMASK	0xFFFFFFFFFFFF
@@ -145,5 +143,4 @@ typedef struct _NTFS_Data_Run
 	}
 } Ntfs_Data_Run;
 #pragma pack(pop)
-
 #endif

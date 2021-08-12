@@ -17,7 +17,7 @@ CSectorReader::~CSectorReader()
 
 bool CSectorReader::OpenDevice(const TCHAR *prmDevice)
 {
-	CommonUtils::CStringUtil tmpStr;
+	CStringUtil tmpStr;
 	tmpStr.Format(TEXT("\\\\.\\%c:"), prmDevice[0]);
 	m_diskHandle = ::CreateFile(tmpStr.GetString(), GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_WRITE | FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);

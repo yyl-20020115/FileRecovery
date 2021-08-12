@@ -12,8 +12,6 @@
 #include "StringUtil.h"
 #include "CommonUtils.h"
 
-using namespace CommonUtils;
-
 enum class FILE_OBJECT_TYPE
 {
 	FILE_OBJECT_TYPE_UNKNOWN = -1,

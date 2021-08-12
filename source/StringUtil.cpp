@@ -639,7 +639,7 @@ void CStringUtil::ToLower()
 	}
 }
 
-void CStringUtil::SplitString(vector<CStringUtil> &prmArray, LPCTSTR prmSplitStr)
+void CStringUtil::SplitString(std::vector<CStringUtil> &prmArray, LPCTSTR prmSplitStr)
 {
 	prmArray.clear();
 	if (m_BufLen == 0)
