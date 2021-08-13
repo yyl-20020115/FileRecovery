@@ -8,25 +8,19 @@
 #include "../source/FileSystemFactory.h"
 
 
-// CDemoDlg 对话框
 class CDemoDlg : public CDialogEx
 {
-// 构造
 public:
-	CDemoDlg(CWnd* pParent = NULL);	// 标准构造函数
+	CDemoDlg(CWnd* pParent = NULL);
 	~CDemoDlg();
-// 对话框数据
 	enum { IDD = IDD_DEMO_DIALOG };
 
 	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
+	virtual void DoDataExchange(CDataExchange* pDX);
 
-
-// 实现
 protected:
 	HICON m_hIcon;
 
-	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
@@ -38,7 +32,7 @@ private:
 	CBaseFileSystem	*m_fileSystem;
 	vector<CBaseFileObject*>	m_deleteFileArray;
 public:
-	afx_msg void OnBnClickedButton1();
+	afx_msg void OnBnClickedSearch();
 	afx_msg void OnBnClickedOk();
 private:
 	
@@ -52,6 +46,5 @@ private:
 	*	返回值：	void
 	*
 	**************************************/
-	void		RestoreFile(CBaseFileSystem *prmFileSystem, CBaseFileObject *prmFileObject,
-		CString &restorFileName);
+	void RestoreFile(CBaseFileSystem *prmFileSystem, CBaseFileObject *prmFileObject, CString &restorFileName);
 };
