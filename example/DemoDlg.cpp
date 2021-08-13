@@ -87,8 +87,8 @@ BOOL CDemoDlg::OnInitDialog()
 		}
 	}
 
-	SetIcon(m_hIcon, TRUE);			// 设置大图标
-	SetIcon(m_hIcon, FALSE);		// 设置小图标
+	SetIcon(m_hIcon, TRUE);	
+	SetIcon(m_hIcon, FALSE);
 
 	::GetLogicalDriveStrings(MAX_PATH, szBuf);
 
