@@ -167,14 +167,17 @@ void CDemoDlg::OnBnClickedSearch()
 	m_fileSystem->GetDeletedFiles(m_deleteFileArray);
 	for (size_t i = 0; i < m_deleteFileArray.size(); i++)
 	{
+		auto file = m_deleteFileArray[i];
 		int	tmpRow = m_deletedFileList.InsertItem(0,TEXT(""));
-		m_deletedFileList.SetItemText(tmpRow, 1, m_deleteFileArray[i]->GetFileName().GetString());
+		LPCTSTR pn = file->GetFileName().GetString();
+
+		m_deletedFileList.SetItemText(tmpRow, 1,pn);
 		CString	tmpFileSize;
-		tmpFileSize.Format(TEXT("%I64d"), m_deleteFileArray[i]->GetFileSize());
+		tmpFileSize.Format(TEXT("%I64d"), file->GetFileSize());
 		
 		m_deletedFileList.SetItemText(tmpRow, 2, tmpFileSize);
-		m_deletedFileList.SetItemText(tmpRow, 3, m_deleteFileArray[i]->GetModifyTime().GetString());
-		m_deletedFileList.SetItemText(tmpRow, 4, m_deleteFileArray[i]->GetFileType() == FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_FILE ? TEXT("FILE"):TEXT("DIRECTORY"));
+		m_deletedFileList.SetItemText(tmpRow, 3, file->GetModifyTime().GetString());
+		m_deletedFileList.SetItemText(tmpRow, 4, file->GetFileType() == FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_FILE ? TEXT("FILE"):TEXT("DIRECTORY"));
 	}
 }
 
@@ -199,7 +202,7 @@ void CDemoDlg::OnBnClickedOk()
 		{
 			tmpFileName = tmpDir;
 			tmpFileName = tmpFileName + "\\" + m_deletedFileList.GetItemText(i, 1);
-			this->RestoreFile(m_fileSystem, m_deleteFileArray[i], tmpFileName);
+			this->RestoreFile(this->m_fileSystem, m_deleteFileArray[i], tmpFileName);
 		}
 	}
 }
