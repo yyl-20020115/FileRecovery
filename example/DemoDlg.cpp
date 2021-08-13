@@ -6,7 +6,7 @@
 #include "Demo.h"
 #include "DemoDlg.h"
 #include "afxdialogex.h"
-#include "FileRecovery/FileSystemFactory.h"
+#include "../source/FileSystemFactory.h"
 #include <ShlObj.h>
 
 #ifdef _DEBUG
@@ -47,8 +47,6 @@ END_MESSAGE_MAP()
 
 // CDemoDlg ¶Ô»°¿ò
 
-
-
 CDemoDlg::CDemoDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CDemoDlg::IDD, pParent)
 {
@@ -60,7 +58,7 @@ CDemoDlg::~CDemoDlg()
 {
 	for (size_t i = 0; i < m_deleteFileArray.size(); i++)
 	{
-		m_deleteFileArray[i]->Destroy();
+		delete m_deleteFileArray[i];
 	}
 	delete m_fileSystem;
 }

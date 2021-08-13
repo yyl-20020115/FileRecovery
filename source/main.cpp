@@ -133,7 +133,8 @@ int main(int argc, char* argv[])
 
 	std::string program = argv[0];
 	std::string options = argv[1];
-	if (options == "-u" && argc < 4) goto show_info;
+
+	if (options == "-u" && argc < 5) goto show_info;
 
 	std::string drive = argv[2];
 	std::string target = (options=="-s" || options == "-l") ? argv[3] : argv[4];

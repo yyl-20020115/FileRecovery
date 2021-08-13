@@ -11,6 +11,13 @@
 #include "BaseFileSystem.h"
 #include "CommonUtils.h"
 
+enum class NtfsRecordFlag : unsigned char
+{
+	FileDeleted = 0,
+	FileUsed = 1,
+	DirectoryDeleted = 2,
+	DirectoryUsed = 3,
+};
 class CNtfsFileSystem 
 	: public CBaseFileSystem
 {

@@ -6,11 +6,6 @@
 #include "Demo.h"
 #include "DemoDlg.h"
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#endif
-
-
 // CDemoApp
 
 BEGIN_MESSAGE_MAP(CDemoApp, CWinApp)

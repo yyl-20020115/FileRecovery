@@ -70,7 +70,8 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 			}
 			for (size_t k = 0; k < clusterSize ; k += 1024)
 			{
-				if (*(szBuf + k + 0x16) == 0) //0: record not used
+				NtfsRecordFlag flag = (NtfsRecordFlag) *(szBuf + k + 0x16);
+				if (flag == NtfsRecordFlag::FileDeleted || flag == NtfsRecordFlag::DirectoryDeleted) 
 				{
 #ifdef _DEBUG
 					UINT64 seqNo = p->vcn * this->m_sectorsPerCluster / 2;
@@ -96,7 +97,7 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 					//用于设置文件内容占用了哪些扇区信息
 					File_Content_Extent	*fileExtents = 0;
 
-					this->GetFileExtent(szBuf + i, clusterOffset + i / 512, &fileExtents);
+					this->GetFileExtent(szBuf + k, clusterOffset + k / 512, &fileExtents);
 
 					CBaseFileObject	*fileObject = new CBaseFileObject();
 #ifdef _UNICODE
@@ -104,25 +105,28 @@ void CNtfsFileSystem::GetDeletedFiles(vector<CBaseFileObject*> &fileArray)
 #else
 					fileObject->SetFileName(szAnsiName);
 #endif
-					fileObject->SetFileSize(this->GetFileSize(szBuf+i));
+					fileObject->SetFileType(
+						flag == NtfsRecordFlag::FileDeleted
+						? FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_FILE
+						: FILE_OBJECT_TYPE::FILE_OBJECT_TYPE_DIRECTORY
+					);
+					fileObject->SetFileSize(this->GetFileSize(szBuf+k));
 					//设置文件内容占用扇区信息
 					fileObject->SetFileExtent(fileExtents);
-					fileObject->SetAccessTime(this->GetAccessTime(szBuf+i));
-					fileObject->SetCreateTime(this->GetCreateTime(szBuf+i));
-					fileObject->SetModifyTime(this->GetModifyTime(szBuf+i));
+					fileObject->SetAccessTime(this->GetAccessTime(szBuf+k));
+					fileObject->SetCreateTime(this->GetCreateTime(szBuf+k));
+					fileObject->SetModifyTime(this->GetModifyTime(szBuf+k));
 
-					//if (this->GetAttrValue(NTFS_ATTRDEF::ATTR_INDEX_ROOT, szBuf + k, 
-					//	(UCHAR*)szAttrValue))
-					//{
-					//	std::vector<CBaseFileObject*> fs;
-					//	this->GetFileFromIndexRoot(szAttrValue, &fs);
-					//}
-					//if (this->GetAttrValue(NTFS_ATTRDEF::ATTR_INDEX_ALLOCATION, szBuf + k,
-					//	(UCHAR*)szAttrValue))
-					//{
-					//	std::vector<CBaseFileObject*> fs;
-					//	this->GetFileFromAllocIndex(szAttrValue, &fs);
-					//}
+					if (flag == NtfsRecordFlag::DirectoryDeleted)
+					{
+						//if (this->GetAttrValue(NTFS_ATTRDEF::ATTR_INDEX_ROOT, szBuf + k,
+						//	(UCHAR*)szAttrValue))
+						//{
+						//	//std::vector<CBaseFileObject*> fs;
+						//	//this->GetFileFromIndexRoot(szAttrValue, &fs);
+						//}
+					}
+
 
 					fileArray.push_back(fileObject);
 				}

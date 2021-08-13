@@ -5,7 +5,7 @@
 #pragma once
 #include "afxwin.h"
 #include "afxcmn.h"
-#include "FileRecovery/FileSystemFactory.h"
+#include "../source/FileSystemFactory.h"
 
 
 // CDemoDlg ¶Ô»°¿ò
